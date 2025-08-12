@@ -25,13 +25,16 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/coze-dev/coze-studio/backend/infra/contract/cache"
 	"github.com/coze-dev/coze-studio/backend/infra/contract/chatmodel"
 	"github.com/coze-dev/coze-studio/backend/infra/contract/modelmgr"
 	"github.com/coze-dev/coze-studio/backend/infra/impl/modelmgr/static"
+	"github.com/coze-dev/coze-studio/backend/infra/impl/modelmgr/volcengine_maas"
 	"github.com/coze-dev/coze-studio/backend/pkg/logs"
+	"github.com/coze-dev/coze-studio/backend/types/consts"
 )
 
-func initModelMgr() (modelmgr.Manager, error) {
+func initModelMgr(cacheCli cache.Cmdable) (modelmgr.Manager, error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		return nil, err
@@ -50,6 +53,11 @@ func initModelMgr() (modelmgr.Manager, error) {
 	all := append(staticModel, envModel...)
 	if err := fillModelContent(all); err != nil {
 		return nil, err
+	}
+
+	modelProvider := os.Getenv(consts.ModelProvider)
+	if modelProvider == consts.ModelProviderVolcengineMAAS {
+		return volcengine_maas.NewModelMgr(all, cacheCli)
 	}
 
 	mgr, err := static.NewModelMgr(all)
